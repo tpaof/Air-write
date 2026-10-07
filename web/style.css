@@ -1,0 +1,241 @@
+:root {
+  --bg: #0b1220;
+  --panel: #131c2e;
+  --line: #24314a;
+  --text: #e5ecf6;
+  --muted: #8a9ab5;
+  --accent: #38bdf8;
+  --good: #22c55e;
+  --gutter: clamp(12px, 2.5vw, 24px);
+  --header-h: 56px;
+  font-family: "Sarabun", "Noto Sans Thai", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  min-height: var(--header-h);
+  padding: 8px var(--gutter);
+  border-bottom: 1px solid var(--line);
+}
+
+header h1 { margin: 0; font-size: clamp(17px, 2.2vw, 20px); }
+header h1 span { color: var(--accent); }
+header h1 small { color: var(--muted); font-weight: 400; font-size: 0.75em; margin-left: 6px; }
+header nav { display: flex; gap: 16px; }
+header nav a { color: var(--muted); text-decoration: none; }
+header nav a.active { color: var(--text); font-weight: 600; }
+
+/* Desktop: camera on the left, panels on the right, all inside one screen height. */
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  gap: var(--gutter);
+  padding: var(--gutter);
+  align-items: start;
+}
+
+.camera-col { min-width: 0; }
+
+.stage { position: relative; }
+.stage video { display: none; }
+.stage canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* keep the whole camera view on screen, leaving room for the hint and controls below */
+  max-height: calc(100dvh - var(--header-h) - 190px);
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+}
+
+/* bottom-left: the top strip of the camera view holds the word chips */
+.badge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  max-width: calc(100% - 20px);
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(11, 18, 32, 0.8);
+  font-size: clamp(12px, 1.6vw, 15px);
+}
+
+.target-overlay {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  font-size: clamp(48px, 9vw, 96px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 2.2em; }
+.suggestion { font-weight: 700; letter-spacing: 0.04em; }
+.suggestion small { font-weight: 400; color: var(--muted); }
+
+.output .current { color: var(--accent); text-decoration: underline; text-underline-offset: 6px; }
+
+.gestures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+}
+.gestures li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+}
+.gestures span { font-size: 20px; }
+
+.hint { color: var(--muted); font-size: 14px; margin: 10px 0; line-height: 1.6; }
+.status { color: var(--accent); }
+.center { text-align: center; justify-content: center; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.controls label { display: flex; align-items: center; gap: 6px; }
+.controls input { width: 80px; }
+
+aside { min-width: 0; }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.panel h2 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.panel h2 small { font-weight: 400; margin-left: 4px; }
+
+.models { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+
+.model {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 6px;
+  text-align: center;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.model.ensemble { margin-bottom: 8px; }
+.model.ensemble .char { font-size: clamp(44px, 6vw, 60px); color: var(--accent); }
+.model.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.model .name { font-size: 12px; color: var(--muted); }
+.model .char { font-size: clamp(30px, 4vw, 40px); font-weight: 700; line-height: 1.15; }
+.model .prob { font-size: 13px; }
+.model .others { font-size: 11px; color: var(--muted); min-height: 1.3em; overflow-wrap: anywhere; }
+.model .ms { font-size: 11px; color: var(--muted); }
+
+.output {
+  font-family: ui-monospace, monospace;
+  font-size: clamp(22px, 3vw, 30px);
+  min-height: 1.6em;
+  margin-bottom: 10px;
+  letter-spacing: 0.06em;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.output .caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background: var(--accent);
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.grow { flex: 1; min-width: 140px; }
+
+button, select, input {
+  background: #1b2740;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 14px;
+  max-width: 100%;
+}
+select { min-width: 0; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+#reps { width: 64px; }
+
+#cnn-view {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+  border-radius: 6px;
+  background: #000;
+}
+
+.target {
+  font-size: clamp(64px, 10vw, 110px);
+  font-weight: 700;
+  text-align: center;
+  line-height: 1;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; font-size: 13px; }
+.grid div { text-align: center; border-radius: 6px; padding: 4px 0; background: #1b2740; }
+.grid div.done { background: rgba(34, 197, 94, 0.25); }
+.grid div.current { outline: 2px solid var(--accent); }
+
+label { font-size: 14px; color: var(--muted); }
+
+/* Tablet: stack, and lay the panels out side by side under the camera. */
+@media (max-width: 1100px) {
+  main { grid-template-columns: 1fr; }
+  .stage canvas { max-height: 62vh; }
+  aside { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  aside .panel { margin-bottom: 0; }
+}
+
+/* Phone */
+@media (max-width: 600px) {
+  :root { --gutter: 12px; }
+  header h1 small { display: none; }
+  .stage canvas { max-height: 50vh; }
+  .hint { font-size: 13px; }
+  .controls label { flex: 1 1 100%; justify-content: space-between; }
+  .controls select { flex: 1; }
+  aside { grid-template-columns: 1fr; }
+  .model .others, .model .ms { display: none; }
+}

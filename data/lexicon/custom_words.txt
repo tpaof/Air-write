@@ -1,0 +1,11 @@
+# One word per line (A-Z / 0-9). These are always treated as common words.
+PSU
+HATYAI
+SONGKHLA
+THAILAND
+AI
+ML
+CNN
+GRU
+KNN
+DTW

@@ -1,0 +1,32 @@
+{
+ "webcam_Teerepat_test_base": {
+  "knn_dtw": {
+   "accuracy": 0.7638888888888888,
+   "top3_accuracy": 0.8611111111111112,
+   "macro_f1": 0.7351851851851852,
+   "latency_ms_median": 6.669739999779267,
+   "n": 72
+  },
+  "cnn": {
+   "accuracy": 0.8194444444444444,
+   "top3_accuracy": 0.9305555555555556,
+   "macro_f1": 0.811111111111111,
+   "latency_ms_median": 1.281609999750799,
+   "n": 72
+  },
+  "gru": {
+   "accuracy": 0.7916666666666666,
+   "top3_accuracy": 0.875,
+   "macro_f1": 0.7686507936507936,
+   "latency_ms_median": 5.485178499839094,
+   "n": 72
+  },
+  "ensemble": {
+   "accuracy": 0.8611111111111112,
+   "top3_accuracy": 0.9444444444444444,
+   "macro_f1": 0.8462962962962962,
+   "latency_ms_median": 13.542162001613178,
+   "n": 72
+  }
+ }
+}

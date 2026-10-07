@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AirWrite — เก็บข้อมูล</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1><span>Air</span>Write <small>เก็บข้อมูลลายมือ</small></h1>
+    <nav><a href="/">Demo</a><a href="/collect" class="active">เก็บข้อมูล</a></nav>
+  </header>
+  <main>
+    <section class="camera-col">
+      <div class="stage">
+        <video id="video" playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        <div class="badge" id="pose">กำลังโหลดกล้อง…</div>
+        <div class="target-overlay" id="target-overlay">–</div>
+      </div>
+      <ul class="gestures">
+        <li><span>🤏</span> จีบ = เขียน · ปล่อย = บันทึก</li>
+        <li><span>✋</span> แบมือค้าง = ลบ</li>
+      </ul>
+      <p class="hint">เขียนตัวที่มุมขวาบน ตัวใหญ่ในกรอบ <span id="pen-status" class="status"></span></p>
+      <div class="controls">
+        <label>กล้อง <select id="camera"></select></label>
+        <label>หยุดกี่ ms ถึงจะบันทึก <input id="pause" type="number" min="300" max="3000" step="100" value="800"></label>
+      </div>
+    </section>
+
+    <aside>
+      <div class="panel">
+        <h2>ผู้เขียน</h2>
+        <div class="row">
+          <input id="writer" class="grow" placeholder="ชื่อภาษาอังกฤษ เช่น tpaof">
+          <label>ตัวละ <input id="reps" type="number" min="1" max="50" value="5"> ครั้ง</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>เขียนตัวนี้</h2>
+        <div class="target" id="target">–</div>
+        <div class="row center">
+          <button id="skip">ข้าม</button>
+          <button id="undo">ลบตัวล่าสุดที่บันทึก</button>
+          <button id="toggle">หยุดพัก</button>
+        </div>
+        <p class="hint center" id="status">กรอกชื่อผู้เขียนก่อนเริ่ม</p>
+      </div>
+
+      <div class="panel">
+        <h2>ความคืบหน้า <span id="total"></span></h2>
+        <div class="grid" id="grid"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script type="module" src="/static/js/collect.js"></script>
+</body>
+</html>

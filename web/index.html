@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AirWrite — เขียนกลางอากาศ</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1><span>Air</span>Write <small>เขียนตัวอักษรกลางอากาศ</small></h1>
+    <nav><a href="/" class="active">Demo</a><a href="/collect">เก็บข้อมูล</a></nav>
+  </header>
+  <main>
+    <section class="camera-col">
+      <div class="stage">
+        <video id="video" playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        <div class="badge" id="pose">กำลังโหลดกล้อง…</div>
+      </div>
+      <ul class="gestures">
+        <li><span>🤏</span> จีบ = เขียน · ปล่อย = จบตัว</li>
+        <li><span>🤏</span> จีบที่คำด้านบน = เลือกคำ</li>
+        <li><span>✋</span> แบมือค้าง = ลบ</li>
+      </ul>
+      <p class="hint">เขียน 0–9, A–Z ตัวใหญ่ในกรอบ <span id="pen-status" class="status"></span></p>
+      <div class="controls">
+        <label>กล้อง <select id="camera"></select></label>
+        <label>หยุดกี่ ms ถึงจะทาย <input id="pause" type="number" min="300" max="3000" step="100" value="800"></label>
+      </div>
+    </section>
+
+    <aside>
+      <div class="panel text-panel">
+        <h2>ข้อความ</h2>
+        <div class="output"><span id="committed"></span><span id="current" class="current"></span><span class="caret"></span></div>
+        <div class="suggestions" id="suggestions"></div>
+        <div class="row">
+          <button id="space">เว้นวรรค</button>
+          <button id="backspace">ลบ</button>
+          <button id="clear-text">ล้างข้อความ</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>ผลทายตัวล่าสุด <small>คลิกเลือกโมเดลที่ใช้พิมพ์</small></h2>
+        <div class="model ensemble selected" data-model="ensemble"><div class="name">Ensemble · เฉลี่ยทั้ง 3 โมเดล</div><div class="char">–</div><div class="prob"></div><div class="others"></div><div class="ms"></div></div>
+        <div class="models">
+          <div class="model" data-model="knn_dtw"><div class="name">KNN + DTW</div><div class="char">–</div><div class="prob"></div><div class="others"></div><div class="ms"></div></div>
+          <div class="model" data-model="cnn"><div class="name">CNN (ภาพ)</div><div class="char">–</div><div class="prob"></div><div class="others"></div><div class="ms"></div></div>
+          <div class="model" data-model="gru"><div class="name">GRU (ลำดับ)</div><div class="char">–</div><div class="prob"></div><div class="others"></div><div class="ms"></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>สิ่งที่ CNN เห็น (28×28)</h2>
+        <div class="row">
+          <canvas id="cnn-view" width="28" height="28"></canvas>
+          <div class="hint" id="status">ยังไม่มีผล</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script type="module" src="/static/js/demo.js"></script>
+</body>
+</html>
