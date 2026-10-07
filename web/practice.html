@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AirWrite — ฝึกเขียน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mali:wght@500;700&family=Sarabun:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>✏️ <span>Air</span>Write <small>ฝึกเขียนกลางอากาศ</small></h1>
+    <nav><a href="/" class="active">ฝึกเขียน</a><a href="/demo">Demo</a><a href="/collect">เก็บข้อมูล</a></nav>
+  </header>
+  <main>
+    <section class="camera-col">
+      <div class="stage">
+        <video id="video" playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        <div class="badge" id="pose">กำลังโหลดกล้อง…</div>
+        <div class="target-overlay" id="target-overlay">–</div>
+        <div class="feedback" id="feedback" hidden></div>
+      </div>
+      <ul class="gestures">
+        <li><span>🤏</span> จีบ = เขียน · ปล่อย = ส่งตรวจ</li>
+        <li><span>✋</span> แบมือค้าง = ยกเลิกตัวที่เขียนผิด</li>
+        <li><span>①</span> ดูจุดสีเหลืองวิ่งให้ดู แล้วลากตามทีละเส้น</li>
+      </ul>
+      <p class="hint">เขียนตัวที่มุมขวาบน ให้ตัวใหญ่เต็มกรอบเส้นประ <span id="pen-status" class="status"></span></p>
+      <details class="settings">
+        <summary>⚙️ ตั้งค่ากล้อง</summary>
+        <div class="controls">
+          <label>กล้อง <select id="camera"></select></label>
+          <label>หยุดกี่ ms ถึงจะตรวจ <input id="pause" type="number" min="300" max="3000" step="100" value="800"></label>
+        </div>
+      </details>
+    </section>
+
+    <aside>
+      <div class="panel target-card">
+        <h2 id="target-title">เขียนตัวนี้</h2>
+        <div class="target" id="target">–</div>
+        <div class="score" id="score"></div>
+        <div class="progress"><span id="progress-bar"></span></div>
+        <p class="hint" id="status">เขียนตัวที่เห็น แล้วปล่อยนิ้ว ระบบจะตรวจให้</p>
+        <div class="row">
+          <button id="skip" class="ghost">ข้าม<span class="unit">ตัว</span>นี้ ⏭</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>ผลรอบนี้</h2>
+        <div class="grid" id="history"></div>
+        <div id="summary"></div>
+      </div>
+
+      <div class="panel">
+        <h2>ชุดฝึก</h2>
+        <div class="field">
+          <span class="label">ฝึกอะไร</span>
+          <select id="set">
+            <option value="digits" data-short="0–9">ตัวเลข 0–9</option>
+            <option value="letters" data-short="A–Z">ตัวอักษร A–Z</option>
+            <option value="all" data-short="ทั้งหมด">ทั้งหมด 0–9, A–Z</option>
+            <option value="words3" data-short="🐱 คำ 3 ตัว">คำศัพท์ 3 ตัวอักษร (CAT, DOG…)</option>
+            <option value="words4" data-short="🐟 คำ 4 ตัว">คำศัพท์ 4 ตัวอักษร (FISH, STAR…)</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="label">ตัวช่วย</span>
+          <select id="help">
+            <option value="trace" data-short="ลากตาม">ลากตาม (แสดงเส้นตลอด)</option>
+            <option value="peek" data-short="ดูก่อนเขียน">ดูก่อนเขียน (ดูวิธีเขียน 1 รอบแล้วเขียนเอง)</option>
+            <option value="none" data-short="ไม่มี">ไม่มีตัวช่วย</option>
+          </select>
+        </div>
+        <div class="field row">
+          <label>รอบละ <input id="round-size" type="number" min="3" max="36" value="10"> <span class="unit">ตัว</span></label>
+          <button id="restart" class="primary">เริ่มรอบใหม่ ↻</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script type="module" src="/static/js/practice.js"></script>
+</body>
+</html>

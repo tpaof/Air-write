@@ -2,32 +2,48 @@
 
 ## public_test_tuned (n=3011)
 
-| model | accuracy | top-3 accuracy | macro-F1 | latency (median ms, CPU) |
-|---|---|---|---|---|
-| KNN + DTW | 98.87% | 99.63% | 0.989 | 7.1 |
-| CNN | 98.54% | 99.77% | 0.986 | 1.6 |
-| GRU | 99.70% | 99.73% | 0.997 | 5.7 |
-| Ensemble (เฉลี่ย 3 ตัว) | 99.63% | 99.77% | 0.997 | 14.5 |
+| model | accuracy | within digits / letters | top-3 accuracy | macro-F1 | latency (median ms, CPU) |
+|---|---|---|---|---|---|
+| KNN + DTW | 98.70% | 99.50% | 99.63% | 0.988 | 7.8 |
+| CNN | 97.94% | 99.67% | 99.70% | 0.981 | 2.0 |
+| GRU | 99.70% | 99.70% | 99.77% | 0.997 | 6.2 |
+| Ensemble (เฉลี่ย 3 ตัว) | 99.63% | 99.67% | 99.73% | 0.997 | 16.5 |
 
 Most common mistakes (true → predicted: count):
 
-- **KNN + DTW**: 5→S: 17, A→H: 3, 6→7: 1, 9→0: 1, 0→1: 1, 1→2: 1, 2→3: 1, 3→4: 1
-- **CNN**: O→0: 20, 0→O: 5, 5→S: 4, 6→7: 1, 0→U: 1, 9→0: 1, 0→1: 1, 1→2: 1
+- **KNN + DTW**: 5→S: 17, O→0: 6, A→H: 2, 6→7: 1, 9→0: 1, 0→1: 1, 1→2: 1, 2→3: 1
+- **CNN**: 0→O: 37, O→0: 13, 5→S: 2, 6→7: 1, 9→O: 1, 0→1: 1, 1→2: 1, 2→3: 1
 - **GRU**: 6→7: 1, 9→0: 1, 0→1: 1, 1→2: 1, 2→3: 1, 3→4: 1, 4→5: 1, N→M: 1
 - **Ensemble (เฉลี่ย 3 ตัว)**: 5→S: 1, 6→7: 1, 9→0: 1, 0→1: 1, 1→2: 1, 2→3: 1, 3→4: 1, 4→5: 1
 
 ## webcam_Teerepat_test_tuned (n=72)
 
-| model | accuracy | top-3 accuracy | macro-F1 | latency (median ms, CPU) |
-|---|---|---|---|---|
-| KNN + DTW | 90.28% | 97.22% | 0.895 | 7.0 |
-| CNN | 86.11% | 97.22% | 0.852 | 1.5 |
-| GRU | 94.44% | 97.22% | 0.934 | 5.5 |
-| Ensemble (เฉลี่ย 3 ตัว) | 94.44% | 97.22% | 0.934 | 14.1 |
+| model | accuracy | within digits / letters | top-3 accuracy | macro-F1 | latency (median ms, CPU) |
+|---|---|---|---|---|---|
+| KNN + DTW | 93.06% | 94.44% | 97.22% | 0.923 | 7.7 |
+| CNN | 94.44% | 97.22% | 98.61% | 0.934 | 1.8 |
+| GRU | 94.44% | 97.22% | 97.22% | 0.934 | 5.9 |
+| Ensemble (เฉลี่ย 3 ตัว) | 94.44% | 97.22% | 97.22% | 0.934 | 15.7 |
 
 Most common mistakes (true → predicted: count):
 
-- **KNN + DTW**: 0→O: 1, 5→0: 1, E→P: 1, P→X: 1, S→5: 1, X→7: 1, X→V: 1
-- **CNN**: 0→O: 2, O→0: 2, 9→S: 1, B→8: 1, M→H: 1, P→X: 1, X→F: 1, X→Y: 1
-- **GRU**: 0→O: 2, P→X: 1, X→9: 1
+- **KNN + DTW**: E→P: 1, P→X: 1, S→5: 1, X→7: 1, X→V: 1
+- **CNN**: 0→O: 2, P→X: 1, X→F: 1
+- **GRU**: 0→O: 2, P→X: 1, X→7: 1
 - **Ensemble (เฉลี่ย 3 ตัว)**: 0→O: 2, P→X: 1, X→7: 1
+
+## standard_order_tuned (n=360)
+
+| model | accuracy | within digits / letters | top-3 accuracy | macro-F1 | latency (median ms, CPU) |
+|---|---|---|---|---|---|
+| KNN + DTW | 98.89% | 100.00% | 100.00% | 0.988 | 7.9 |
+| CNN | 95.56% | 99.44% | 100.00% | 0.954 | 2.0 |
+| GRU | 97.22% | 100.00% | 100.00% | 0.963 | 6.1 |
+| Ensemble (เฉลี่ย 3 ตัว) | 97.78% | 100.00% | 100.00% | 0.974 | 16.5 |
+
+Most common mistakes (true → predicted: count):
+
+- **KNN + DTW**: 0→O: 4
+- **CNN**: 0→O: 9, O→0: 5, P→R: 2
+- **GRU**: 0→O: 10
+- **Ensemble (เฉลี่ย 3 ตัว)**: 0→O: 8

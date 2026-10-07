@@ -1,0 +1,32 @@
+{
+ "standard_order_base_std": {
+  "knn_dtw": {
+   "accuracy": 0.6805555555555556,
+   "top3_accuracy": 0.725,
+   "macro_f1": 0.6142342573794186,
+   "latency_ms_median": 6.351938502120902,
+   "n": 360
+  },
+  "cnn": {
+   "accuracy": 0.8611111111111112,
+   "top3_accuracy": 0.9638888888888889,
+   "macro_f1": 0.849748548063864,
+   "latency_ms_median": 1.4543489978677826,
+   "n": 360
+  },
+  "gru": {
+   "accuracy": 0.75,
+   "top3_accuracy": 0.7777777777777778,
+   "macro_f1": 0.6981162711140464,
+   "latency_ms_median": 5.267553500743816,
+   "n": 360
+  },
+  "ensemble": {
+   "accuracy": 0.7611111111111111,
+   "top3_accuracy": 0.9055555555555556,
+   "macro_f1": 0.7110428400750981,
+   "latency_ms_median": 13.23152300028596,
+   "n": 360
+  }
+ }
+}

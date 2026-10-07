@@ -4,12 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AirWrite — เก็บข้อมูล</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mali:wght@500;700&family=Sarabun:wght@400;600;700&display=swap">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header>
-    <h1><span>Air</span>Write <small>เก็บข้อมูลลายมือ</small></h1>
-    <nav><a href="/">Demo</a><a href="/collect" class="active">เก็บข้อมูล</a></nav>
+    <h1>✏️ <span>Air</span>Write <small>เก็บข้อมูลลายมือ</small></h1>
+    <nav><a href="/">ฝึกเขียน</a><a href="/demo">Demo</a><a href="/collect" class="active">เก็บข้อมูล</a></nav>
   </header>
   <main>
     <section class="camera-col">
@@ -24,10 +27,13 @@
         <li><span>✋</span> แบมือค้าง = ลบ</li>
       </ul>
       <p class="hint">เขียนตัวที่มุมขวาบน ตัวใหญ่ในกรอบ <span id="pen-status" class="status"></span></p>
-      <div class="controls">
-        <label>กล้อง <select id="camera"></select></label>
-        <label>หยุดกี่ ms ถึงจะบันทึก <input id="pause" type="number" min="300" max="3000" step="100" value="800"></label>
-      </div>
+      <details class="settings">
+        <summary>⚙️ ตั้งค่ากล้อง</summary>
+        <div class="controls">
+          <label>กล้อง <select id="camera"></select></label>
+          <label>หยุดกี่ ms ถึงจะบันทึก <input id="pause" type="number" min="300" max="3000" step="100" value="800"></label>
+        </div>
+      </details>
     </section>
 
     <aside>

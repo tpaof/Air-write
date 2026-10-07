@@ -1,6 +1,6 @@
 """Web server: serves the demo/collect pages and runs the models.
 
-Run:  uvicorn server.app:app --port 8001
+Run:  uvicorn server.app:app --port 8000
 """
 
 import json
@@ -18,7 +18,6 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from airwrite.datasets import COLLECTED  # noqa: E402
-from airwrite.lexicon import WordPredictor  # noqa: E402
 from airwrite.predictor import Predictor  # noqa: E402
 from airwrite.preprocess import CLASSES  # noqa: E402
 
@@ -27,22 +26,24 @@ DEMO_LOG = ROOT / "data" / "demo_log"
 app = FastAPI(title="AirWrite")
 app.mount("/static", StaticFiles(directory=WEB), name="static")
 
+
+@app.middleware("http")
+async def revalidate_everything(request, call_next):
+    """Without this the browser may keep running an old cached airpen.js, or show old tracing
+    guides from /api/guides, after an update. no-cache still allows a cheap 304 check."""
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
 try:
     predictor = Predictor()
 except FileNotFoundError:
     predictor = None  # models not trained yet; /collect still works
-words = WordPredictor()
 
 
 class Trajectory(BaseModel):
     # strokes -> points -> [x, y] in pixels, as seen by the writer
     strokes: list[list[list[float]]] = Field(min_length=1)
-
-
-class WordSoFar(BaseModel):
-    # one 36-way probability vector per character written so far (empty = predict next word)
-    probs: list[list[float]] = Field(default_factory=list, max_length=40)
-    prev: str | None = None  # the word before, for the bigram language model
 
 
 class Sample(Trajectory):
@@ -56,7 +57,14 @@ def _writer_dir(writer: str) -> Path:
     return COLLECTED / writer
 
 
+# Practice mode for children is the main page; /practice is kept for old links.
 @app.get("/")
+@app.get("/practice")
+def practice_page():
+    return FileResponse(WEB / "practice.html")
+
+
+@app.get("/demo")
 def demo_page():
     return FileResponse(WEB / "index.html")
 
@@ -64,6 +72,15 @@ def demo_page():
 @app.get("/collect")
 def collect_page():
     return FileResponse(WEB / "collect.html")
+
+
+@app.get("/api/guides")
+def guides():
+    """Tracing guides for practice mode (built by scripts/make_guides.py)."""
+    path = ROOT / "checkpoints" / "guides.json"
+    if not path.exists():
+        raise HTTPException(404, "no guides yet — run scripts/make_guides.py")
+    return FileResponse(path)
 
 
 @app.post("/api/predict")
@@ -78,13 +95,6 @@ def predict(traj: Trajectory):
     log = {"strokes": traj.strokes, "models": result["models"]}
     (DEMO_LOG / f"{int(time.time() * 1000)}.json").write_text(json.dumps(log), encoding="utf-8")
     return result
-
-
-@app.post("/api/suggest")
-def suggest(word: WordSoFar):
-    if any(len(p) != len(CLASSES) for p in word.probs):
-        raise HTTPException(400, f"each probability vector must have {len(CLASSES)} values")
-    return {"suggestions": words.suggest(word.probs, word.prev)}
 
 
 @app.post("/api/samples")

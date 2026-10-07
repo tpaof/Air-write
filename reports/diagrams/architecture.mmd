@@ -1,0 +1,27 @@
+flowchart TB
+  subgraph B["① เบราว์เซอร์: รับภาพและสร้างเส้นทาง (HTML + JavaScript)"]
+    direction LR
+    A1["เว็บแคม<br/>640×480 · 30 fps"] --> A2["MediaPipe Hands<br/>จุดบนมือ 21 จุด"] --> A3["ตรวจท่ามือ<br/>จีบ / ปล่อย / แบมือ"] --> A4["สร้างเส้นทาง<br/>One Euro filter"]
+  end
+  subgraph S["② เซิร์ฟเวอร์: อ่านตัวอักษร (Python + FastAPI)"]
+    direction LR
+    B1["POST /api/predict<br/>รับเส้นทาง"] --> B2["เตรียมข้อมูล<br/>resample · normalize"] --> B3["3 โมเดล<br/>KNN+DTW · CNN · GRU"] --> B4["Ensemble<br/>เฉลี่ยความน่าจะเป็น"]
+  end
+  subgraph O["③ เบราว์เซอร์: แสดงผล"]
+    direction TB
+    subgraph OP["หน้าฝึกเขียน (หน้าหลัก)"]
+      direction LR
+      C1["เทียบกับโจทย์<br/>ตัวอักษร / คำศัพท์"] --> C2["✓ ถูก → ตัวถัดไป<br/>✗ ผิด → ดูเส้นตัวช่วย"] --> C3["คะแนนและ<br/>ตัวที่ควรฝึกเพิ่ม"]
+    end
+    subgraph OD["หน้า Demo (ความสามารถเสริม)"]
+      direction LR
+      D1["ผลของแต่ละโมเดล<br/>ข้างกัน"] --> D3["ต่อตัวอักษร<br/>เป็นข้อความ"]
+    end
+    OP ~~~ OD
+  end
+  B -- "ส่งเส้นทางเมื่อเขียนจบตัว (JSON)" --> S
+  S -- "ความน่าจะเป็นของ 36 ตัว" --> O
+  classDef model fill:#E0F2FE,stroke:#0369A1,color:#0F172A
+  classDef main fill:#DCFCE7,stroke:#16A34A,color:#0F172A
+  class B3,B4 model
+  class C1,C2,C3 main

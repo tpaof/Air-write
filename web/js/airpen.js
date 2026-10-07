@@ -3,11 +3,11 @@
 // Gestures:  🤏 thumb + index touching = pen down, release = pen up
 //            ✋ open palm held             = cancel the half-written character, or, when the
 //                                            board is empty, onGesture("delete") (repeats while held)
-//            🤏 on a word chip (top strip)  = onGesture("select", 1 | 2 | 3) — pick a word suggestion
 // The pen point is the midpoint of the two fingertips, which barely moves when you pinch
 // or release, so strokes do not get hooks at the start and end.
 // A character is sent to onCharDone(strokes) when the pen stays up for `pauseMs`, or when
-// the pen is held still for `pauseMs`. Strokes are in pixels as seen by the writer
+// the pen is held still for `pauseMs`. If `expectStrokes` is set (practice mode) and fewer
+// strokes have been written, the pen may stay up for LIFT_WAIT_MS while moving to the next one. Strokes are in pixels as seen by the writer
 // (mirror-corrected).
 
 import { FilesetResolver, HandLandmarker } from "/static/vendor/mediapipe/vision_bundle.mjs";
@@ -81,6 +81,71 @@ const DELETE_MS = 700; // hold an open palm this long to cancel / delete one cha
 const DELETE_REPEAT_MS = 500; // …then one more every this often while still held
 const GUIDE_SIZE = 0.7; // dashed guide box, as a fraction of the frame height
 const MIN_CHAR_SIZE = 0.15; // smaller characters are ignored (accidental moves, too jittery)
+const LIFT_WAIT_MS = 3000; // pen up between strokes of a character that has more to come
+// Webcams drop to ~15 fps in a dim room, where a blurred hand is easily lost for a few frames.
+// These keep a stroke whole through such glitches (they were 300 ms / 250 ms / 8%, tuned at 30 fps).
+const HAND_LOST_MS = 450; // hand not found this long while writing = pen up
+const REJOIN_MS = 400; // pinching again this soon after a lift, close to where it stopped,
+const REJOIN_DIST = 0.15; // (within this fraction of the frame height) continues the same stroke
+
+const GUIDE_RUN_MS = 1400; // one run of the dot along the stroke to write next
+const GUIDE_GAP_MS = 450; // pause between strokes in the stroke-order animation
+const GUIDE_END_MS = 1200; // pause with the whole character shown before it starts again
+
+// How long the dot takes along each stroke of a guide (strokes normalised to the guide box):
+// longer strokes take longer, at about one guide-box height every 2 seconds.
+function strokeDurations(strokes) {
+  return strokes.map((s) => {
+    const len = s.slice(1).reduce((sum, p, i) => sum + Math.hypot(p[0] - s[i][0], p[1] - s[i][1]), 0);
+    return Math.max(600, len * GUIDE_SIZE * 0.88 * 2000);
+  });
+}
+
+// One full play of the stroke-order animation, ending with the whole character shown.
+export function guideLoopMs(strokes) {
+  return strokeDurations(strokes).reduce((a, d) => a + d + GUIDE_GAP_MS, 0) + GUIDE_END_MS;
+}
+
+// Where the stroke-order animation is `elapsed` ms after it started: which stroke is being
+// traced, and how far along; `active` = strokes.length means the whole character is shown.
+function guideTimeline(strokes, elapsed) {
+  const durations = strokeDurations(strokes);
+  let t = elapsed % guideLoopMs(strokes);
+  for (let i = 0; i < strokes.length; i++) {
+    if (t < durations[i]) return { active: i, progress: t / durations[i] };
+    t -= durations[i];
+    if (t < GUIDE_GAP_MS) return { active: i, progress: 1 };
+    t -= GUIDE_GAP_MS;
+  }
+  return { active: strokes.length, progress: 1 };
+}
+
+// Point `f` (0..1) of the way along an evenly resampled stroke.
+function pointAt(s, f) {
+  const x = f * (s.length - 1);
+  const j = Math.min(s.length - 2, Math.floor(x));
+  const t = x - j;
+  return [s[j][0] + (s[j + 1][0] - s[j][0]) * t, s[j][1] + (s[j + 1][1] - s[j][1]) * t];
+}
+
+// A filled arrowhead at fraction `f` of the stroke, white with a dark rim so it shows on any background.
+function drawArrow(ctx, s, f, size) {
+  const j = Math.min(s.length - 2, Math.floor(f * (s.length - 1)));
+  const [ax, ay] = s[j];
+  const [bx, by] = s[j + 1];
+  const ang = Math.atan2(by - ay, bx - ax);
+  const tip = [bx + Math.cos(ang) * size * 0.5, by + Math.sin(ang) * size * 0.5];
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "rgba(15,23,42,0.85)";
+  ctx.lineWidth = size / 7;
+  ctx.beginPath();
+  ctx.moveTo(...tip);
+  ctx.lineTo(tip[0] - size * Math.cos(ang - 0.5), tip[1] - size * Math.sin(ang - 0.5));
+  ctx.lineTo(tip[0] - size * Math.cos(ang + 0.5), tip[1] - size * Math.sin(ang + 0.5));
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
 
 // 5-point moving average, only for drawing on screen (the server smooths its own copy).
 function smoothForDisplay(points) {
@@ -93,7 +158,8 @@ function smoothForDisplay(points) {
 export class AirPen {
   constructor({ video, canvas, onCharDone, onStatus, onGesture, pauseMs = 800 }) {
     Object.assign(this, { video, canvas, onCharDone, onStatus, onGesture, pauseMs });
-    this.choices = []; // word suggestions drawn as chips across the top; pinch one to pick it
+    this.guide = null; // { strokes, until? } tracing guide drawn in the guide box (practice mode)
+    this.expectStrokes = 0; // strokes the character to write has (practice mode), 0 = unknown
     this.hold = null; // the held palm gesture, see checkHold()
     this.ctx = canvas.getContext("2d");
     this.strokes = [];
@@ -194,13 +260,18 @@ export class AirPen {
       }
       if (this.enabled) this.updateStrokes(raw, this.tip, now);
     }
-    this.draw();
+    // Schedule the next frame first: a drawing error must not freeze the camera view.
     requestAnimationFrame(() => this.loop());
+    try {
+      this.draw();
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   // Pen state with hysteresis so the line does not break when the pose flickers:
   //  - pen goes down after 2 frames of "draw"
-  //  - pen goes up after 3 frames of "hover"/"palm", or ~300 ms without "draw" (hand lost)
+  //  - pen goes up after 3 frames of "hover"/"palm", or HAND_LOST_MS without "draw" (hand lost)
   updatePenState(raw, now) {
     if (raw === "draw") {
       this.drawFrames++;
@@ -211,7 +282,7 @@ export class AirPen {
       if (raw !== "none") this.upFrames++; // hover or palm: clearly not writing
     }
     if (!this.penDown && this.drawFrames >= 2) this.penDown = true;
-    else if (this.penDown && (this.upFrames >= 3 || now - this.lastDrawSeen > 300)) this.penDown = false;
+    else if (this.penDown && (this.upFrames >= 3 || now - this.lastDrawSeen > HAND_LOST_MS)) this.penDown = false;
     return this.penDown;
   }
 
@@ -227,19 +298,10 @@ export class AirPen {
     }
 
     if (penDown) {
-      // Pinching on a word chip with nothing half-written is a click, not the start of a stroke.
-      if (!this.current && this.strokes.length === 0) {
-        const i = this.chipAt(tip);
-        if (i >= 0) {
-          this.waitForLift = true;
-          this.onGesture?.("select", i + 1);
-          return;
-        }
-      }
       if (!this.current) {
         const prev = this.strokes[this.strokes.length - 1];
         const [px, py] = prev ? prev[prev.length - 1] : [0, 0];
-        if (prev && tip && now - this.lastPenUpAt < 250 && Math.hypot(tip[0] - px, tip[1] - py) < 0.08 * this.canvas.height) {
+        if (prev && tip && now - this.lastPenUpAt < REJOIN_MS && Math.hypot(tip[0] - px, tip[1] - py) < REJOIN_DIST * this.canvas.height) {
           // The pen only lifted for a moment near where it stopped: a flicker, not a new stroke.
           this.current = prev;
         } else {
@@ -252,7 +314,8 @@ export class AirPen {
       if (raw === "draw") this.lastSureLength = this.current.length;
       this.lastPenDown = now;
       const still = this.stillSince(this.current);
-      if (still !== null && now - this.current[still][2] > this.pauseMs) {
+      // Pausing at a corner is not "done" while the character still has strokes to come.
+      if (still !== null && !this.strokesToCome() && now - this.current[still][2] > this.pauseMs) {
         // Pen held still: the character is done. Keep the stroke up to where it stopped.
         this.current.length = still + 1;
         this.current = null;
@@ -270,7 +333,14 @@ export class AirPen {
     }
     this.current = null;
     // Holding a palm over a half-written character means "cancel it", so do not send it yet.
-    if (raw !== "palm" && now - this.lastPenDown > this.pauseMs) this.finish(now);
+    const wait = this.strokesToCome() ? Math.max(this.pauseMs, LIFT_WAIT_MS) : this.pauseMs;
+    if (raw !== "palm" && now - this.lastPenDown > wait) this.finish(now);
+  }
+
+  // Strokes still to write before the character is complete (0 when unknown or done).
+  strokesToCome() {
+    const written = this.strokes.filter((s) => s.length >= 3).length;
+    return written > 0 ? Math.max(0, this.expectStrokes - written) : 0;
   }
 
   // ✋ palm held for DELETE_MS (pen up): if a character is half-written, cancel it (and stop
@@ -292,20 +362,6 @@ export class AirPen {
     h.fired++;
     h.nextAt = now + DELETE_REPEAT_MS;
     this.onGesture?.("delete", h.fired); // h.fired = 1 for the first delete of this hold
-  }
-
-  // Word chips across the top of the frame, above the guide box (the hand stays fully in view
-  // when reaching up, unlike at the bottom edge where the wrist leaves the frame).
-  chipRects() {
-    const { width: w, height: h } = this.canvas;
-    const gap = 0.015 * w;
-    const cw = (w - 4 * gap) / 3;
-    return this.choices.map((_, i) => ({ x: gap + i * (cw + gap), y: 0.02 * h, w: cw, h: 0.11 * h }));
-  }
-
-  chipAt(tip) {
-    if (!tip) return -1;
-    return this.chipRects().findIndex((r) => tip[0] >= r.x && tip[0] <= r.x + r.w && tip[1] >= r.y && tip[1] <= r.y + r.h);
   }
 
   // Progress (0..1) of the palm being held, for the UI: { pose, progress } or null.
@@ -370,7 +426,7 @@ export class AirPen {
     ctx.strokeRect((w - box) / 2, (h - box) / 2, box, box);
     ctx.restore();
 
-    this.drawChips(tip);
+    if (this.guide && !(this.guide.until < performance.now())) this.drawGuide(this.guide);
 
     const now = performance.now();
     if (this.ghost && now < this.ghost.until) this.drawStrokes(this.ghost.strokes, "rgba(56,189,248,0.25)");
@@ -384,23 +440,101 @@ export class AirPen {
     }
   }
 
-  drawChips(tip) {
-    const { ctx } = this;
-    const hover = this.strokes.length === 0 ? this.chipAt(tip) : -1;
-    this.chipRects().forEach((r, i) => {
-      ctx.fillStyle = "rgba(11, 18, 32, 0.78)";
-      ctx.strokeStyle = i === hover ? (this.penDown ? "#22c55e" : "#38bdf8") : "rgba(255,255,255,0.25)";
-      ctx.lineWidth = i === hover ? r.h * 0.07 : 1;
+  // Tracing guide: the character's strokes (normalised to [-0.5, 0.5]) laid over the guide box.
+  // Before the child starts, a yellow dot traces the strokes one after another, like a
+  // stroke-order animation, and loops. Once writing, only the stroke to write next is lit
+  // (with a dot running along it); strokes already written turn green, later ones stay faint.
+  drawGuide(guide) {
+    const { strokes } = guide;
+    guide.start ??= performance.now(); // a new guide plays its animation from stroke 1
+    const { ctx, canvas } = this;
+    const w = canvas.width;
+    const h = canvas.height;
+    const scale = GUIDE_SIZE * h * 0.88;
+    const pts = strokes.map((s) => s.map(([x, y]) => [w / 2 + x * scale, h / 2 + y * scale]));
+    const now = performance.now();
+    const writing = this.strokes.length > 0;
+    let active;
+    let progress;
+    if (writing) {
+      active = Math.min(this.current ? this.strokes.length - 1 : this.strokes.length, pts.length - 1);
+      progress = (now % GUIDE_RUN_MS) / GUIDE_RUN_MS;
+    } else {
+      ({ active, progress } = guideTimeline(strokes, now - guide.start));
+    }
+
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    const line = (s, color, width) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
       ctx.beginPath();
-      ctx.roundRect(r.x, r.y, r.w, r.h, r.h * 0.2);
+      s.forEach((p, j) => (j ? ctx.lineTo(...p) : ctx.moveTo(...p)));
+      ctx.stroke();
+    };
+    pts.forEach((s, i) => {
+      if (i < active) line(s, writing ? "rgba(74,222,128,0.7)" : "rgba(255,255,255,0.8)", w / 45);
+      else if (i > active) line(s, "rgba(255,255,255,0.22)", w / 45);
+    });
+    if (active < pts.length) {
+      const s = pts[active];
+      const head = pointAt(s, progress);
+      if (writing) {
+        line(s, "rgba(255,255,255,0.85)", w / 40);
+        drawArrow(ctx, s, 0.55, w / 32);
+      } else {
+        // the ink so far, then the rest of the stroke still faint
+        line(s, "rgba(255,255,255,0.22)", w / 45);
+        line([...s.slice(0, Math.floor(progress * (s.length - 1)) + 1), head], "#ffd23f", w / 38);
+      }
+      ctx.fillStyle = "#ffd23f";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = w / 220;
+      ctx.beginPath();
+      ctx.arc(head[0], head[1], w / 55, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = "#e5ecf6";
-      ctx.font = `700 ${Math.round(r.h * 0.5)}px system-ui, sans-serif`;
+    }
+
+    // Numbered start dots. Several strokes often start at the same corner (E, B, D...): nudge
+    // each of those dots back against its own direction so the numbers sit side by side.
+    const r = w / 48;
+    const starts = pts.map((s) => s[0]);
+    const placed = [];
+    pts.forEach((s, i) => {
+      let [x, y] = starts[i];
+      if (starts.some(([ox, oy], k) => k !== i && Math.hypot(ox - x, oy - y) < 2.2 * r)) {
+        const [nx, ny] = s[Math.min(3, s.length - 1)];
+        const d = Math.hypot(nx - x, ny - y) || 1;
+        const [ux, uy] = [(nx - x) / d, (ny - y) / d];
+        // strokes leaving in similar directions (A, M, N) need a longer nudge to clear each other
+        let k = 1.3 * r;
+        while (k < 4 * r && placed.some(([px, py]) => Math.hypot(px - (x - ux * k), py - (y - uy * k)) < 2 * r)) k += r / 4;
+        x -= ux * k;
+        y -= uy * k;
+      }
+      placed.push([x, y]);
+      const isActive = i === active;
+      if (isActive) {
+        // a pulsing ring marks where to put the finger down
+        ctx.strokeStyle = `rgba(34,197,94,${0.9 - 0.6 * ((now % 1000) / 1000)})`;
+        ctx.lineWidth = w / 160;
+        ctx.beginPath();
+        ctx.arc(x, y, r * (1.2 + 0.6 * ((now % 1000) / 1000)), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.fillStyle = isActive ? "#22c55e" : i < active ? "rgba(34,197,94,0.75)" : "rgba(100,116,139,0.85)";
+      ctx.beginPath();
+      ctx.arc(x, y, isActive ? r * 1.15 : r * 0.9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `800 ${Math.round((isActive ? 1.25 : 1) * w / 48)}px system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(this.choices[i], r.x + r.w / 2, r.y + r.h / 2, r.w * 0.9);
+      ctx.fillText(String(i + 1), x, y + 1);
     });
+    ctx.restore();
   }
 
   // Draw through the midpoints with quadratic curves so the line looks smooth on screen.

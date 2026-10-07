@@ -4,12 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AirWrite — เขียนกลางอากาศ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mali:wght@500;700&family=Sarabun:wght@400;600;700&display=swap">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header>
-    <h1><span>Air</span>Write <small>เขียนตัวอักษรกลางอากาศ</small></h1>
-    <nav><a href="/" class="active">Demo</a><a href="/collect">เก็บข้อมูล</a></nav>
+    <h1>✏️ <span>Air</span>Write <small>เขียนอิสระ</small></h1>
+    <nav><a href="/">ฝึกเขียน</a><a href="/demo" class="active">Demo</a><a href="/collect">เก็บข้อมูล</a></nav>
   </header>
   <main>
     <section class="camera-col">
@@ -20,21 +23,22 @@
       </div>
       <ul class="gestures">
         <li><span>🤏</span> จีบ = เขียน · ปล่อย = จบตัว</li>
-        <li><span>🤏</span> จีบที่คำด้านบน = เลือกคำ</li>
         <li><span>✋</span> แบมือค้าง = ลบ</li>
       </ul>
       <p class="hint">เขียน 0–9, A–Z ตัวใหญ่ในกรอบ <span id="pen-status" class="status"></span></p>
-      <div class="controls">
-        <label>กล้อง <select id="camera"></select></label>
-        <label>หยุดกี่ ms ถึงจะทาย <input id="pause" type="number" min="300" max="3000" step="100" value="800"></label>
-      </div>
+      <details class="settings">
+        <summary>⚙️ ตั้งค่ากล้อง</summary>
+        <div class="controls">
+          <label>กล้อง <select id="camera"></select></label>
+          <label>หยุดกี่ ms ถึงจะทาย <input id="pause" type="number" min="300" max="3000" step="100" value="800"></label>
+        </div>
+      </details>
     </section>
 
     <aside>
       <div class="panel text-panel">
         <h2>ข้อความ</h2>
         <div class="output"><span id="committed"></span><span id="current" class="current"></span><span class="caret"></span></div>
-        <div class="suggestions" id="suggestions"></div>
         <div class="row">
           <button id="space">เว้นวรรค</button>
           <button id="backspace">ลบ</button>

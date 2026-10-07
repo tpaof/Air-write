@@ -3,6 +3,7 @@
 Usage:
     python scripts/evaluate.py                    # public test set (RTD test + 10% RTC)
     python scripts/evaluate.py --writer tpaof     # also our own webcam samples
+    python scripts/evaluate.py --standard-test 10 # also synthetic standard-order samples (unseen seed)
 
 Outputs go to reports/: results.md, results.json, confusion_*.png, learning_curves.png
 """
@@ -26,15 +27,25 @@ from sklearn.metrics import confusion_matrix, f1_score  # noqa: E402
 from airwrite.datasets import load_collected, load_public, split_collected  # noqa: E402
 from airwrite.predictor import MODEL_DIR, MODEL_NAMES, Predictor  # noqa: E402
 from airwrite.preprocess import CLASSES  # noqa: E402
+from airwrite.stroke_order import synthesize_set  # noqa: E402
 
 REPORT_DIR = Path(__file__).resolve().parent.parent / "reports"
 PRETTY = {"knn_dtw": "KNN + DTW", "cnn": "CNN", "gru": "GRU", "ensemble": "Ensemble (เฉลี่ย 3 ตัว)"}
 
 
+DIGITS = np.arange(10)
+LETTERS = np.arange(10, len(CLASSES))
+
+
 def run(predictor, samples):
-    """Return predicted labels, top-3 hits and per-sample latency (ms) for every model."""
+    """Return predicted labels, top-3 hits and per-sample latency (ms) for every model.
+
+    `group_pred` is the answer when the model may only choose within the true label's group
+    (digits or letters), the way practice mode reads a character from the set being practised.
+    """
     y_true = np.array([s[1] for s in samples])
     pred = {m: [] for m in MODEL_NAMES}
+    group_pred = {m: [] for m in MODEL_NAMES}
     top3 = {m: [] for m in MODEL_NAMES}
     ms = {m: [] for m in MODEL_NAMES}
     t0 = time.time()
@@ -43,18 +54,21 @@ def run(predictor, samples):
         for m in MODEL_NAMES:
             order = np.argsort(probs[m])[::-1]
             pred[m].append(order[0])
+            group = DIGITS if label < 10 else LETTERS
+            group_pred[m].append(group[np.argmax(np.asarray(probs[m])[group])])
             top3[m].append(label in order[:3])
             ms[m].append(timing[m])
         if (i + 1) % 500 == 0:
             print(f"  {i + 1}/{len(samples)}  ({time.time() - t0:.0f}s)")
-    return y_true, {m: np.array(v) for m, v in pred.items()}, top3, ms
+    return y_true, {m: np.array(v) for m, v in pred.items()}, top3, ms, {m: np.array(v) for m, v in group_pred.items()}
 
 
-def summarize(name, y_true, pred, top3, ms):
+def summarize(name, y_true, pred, top3, ms, group_pred):
     rows = {}
     for m in MODEL_NAMES:
         rows[m] = {
             "accuracy": float((pred[m] == y_true).mean()),
+            "group_accuracy": float((group_pred[m] == y_true).mean()),
             "top3_accuracy": float(np.mean(top3[m])),
             "macro_f1": float(f1_score(y_true, pred[m], average="macro", labels=np.unique(y_true))),
             "latency_ms_median": float(np.median(ms[m])),
@@ -118,6 +132,8 @@ def main():
     parser.add_argument("--skip-public", action="store_true")
     parser.add_argument("--test-per-class", type=int, default=0,
                         help="evaluate only the writer's held-out samples (same split as train.py)")
+    parser.add_argument("--standard-test", type=int, default=0,
+                        help="per character, synthetic samples in the standard stroke order (seed differs from training)")
     parser.add_argument("--model-dir", default=str(MODEL_DIR), help="checkpoints to evaluate")
     parser.add_argument("--tag", default="", help="suffix for output files, e.g. 'base' or 'tuned'")
     args = parser.parse_args()
@@ -132,18 +148,20 @@ def main():
         if args.test_per_class:
             samples = split_collected(samples, args.test_per_class)[1]
         sets[f"webcam_{args.writer}{'_test' if args.test_per_class else ''}"] = samples
+    if args.standard_test:
+        sets["standard_order"] = synthesize_set(args.standard_test, seed=1)
 
     results, lines = {}, ["# Evaluation results", ""]
     for name, samples in sets.items():
         print(f"evaluating {name} ({len(samples)} samples)")
-        y_true, pred, top3, ms = run(predictor, samples)
+        y_true, pred, top3, ms, group_pred = run(predictor, samples)
         name = f"{name}_{args.tag}" if args.tag else name
-        results[name] = summarize(name, y_true, pred, top3, ms)
+        results[name] = summarize(name, y_true, pred, top3, ms, group_pred)
         lines += [f"## {name} (n={len(samples)})", "",
-                  "| model | accuracy | top-3 accuracy | macro-F1 | latency (median ms, CPU) |",
-                  "|---|---|---|---|---|"]
+                  "| model | accuracy | within digits / letters | top-3 accuracy | macro-F1 | latency (median ms, CPU) |",
+                  "|---|---|---|---|---|---|"]
         for m, r in results[name].items():
-            lines.append(f"| {PRETTY[m]} | {r['accuracy']:.2%} | {r['top3_accuracy']:.2%} | "
+            lines.append(f"| {PRETTY[m]} | {r['accuracy']:.2%} | {r['group_accuracy']:.2%} | {r['top3_accuracy']:.2%} | "
                          f"{r['macro_f1']:.3f} | {r['latency_ms_median']:.1f} |")
         lines += ["", "Most common mistakes (true → predicted: count):", ""]
         for m in MODEL_NAMES:

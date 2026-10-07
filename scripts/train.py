@@ -4,6 +4,7 @@ Usage:
     python scripts/train.py                 # all three models
     python scripts/train.py --model cnn     # only one
     python scripts/train.py --extra tpaof   # also train on samples collected by writer "tpaof"
+    python scripts/train.py --standard 100  # also train on 100 synthetic standard-order samples per character
 """
 
 import argparse
@@ -23,6 +24,7 @@ from airwrite.datasets import load_collected, load_public, split_collected  # no
 from airwrite.models import CharCNN, CharGRU, KnnDtw  # noqa: E402
 from airwrite.predictor import MODEL_DIR  # noqa: E402
 from airwrite.preprocess import CLASSES, augment, join_strokes, to_image, to_sequence  # noqa: E402
+from airwrite.stroke_order import synthesize_set  # noqa: E402
 
 REPORT_DIR = Path(__file__).resolve().parent.parent / "reports"
 
@@ -139,6 +141,9 @@ def main():
     parser.add_argument("--extra", help="also train on webcam samples from this writer")
     parser.add_argument("--extra-test-per-class", type=int, default=0,
                         help="keep this many of the writer's samples per character out of training (for evaluate.py)")
+    parser.add_argument("--standard", type=int, default=0,
+                        help="add this many synthetic samples per character written in the standard stroke "
+                             "order taught by the practice guides (RTD/RTC writers often use other orders)")
     args = parser.parse_args()
 
     MODEL_DIR.mkdir(exist_ok=True)
@@ -152,12 +157,18 @@ def main():
         # Repeat our few samples so they are not drowned out by 40k public ones.
         train_set = train_set + extra * 20
         print(f"added {len(extra)} webcam samples from '{args.extra}' (x20)")
+    standard = []
+    if args.standard:
+        standard = synthesize_set(args.standard, seed=0)
+        train_set = train_set + standard
+        print(f"added {len(standard)} synthetic standard-order samples")
     print(f"train {len(train_set)}  val {len(val_set)}")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if args.model in ("all", "knn"):
         public_only = [s for s in train_set if s[2] in ("rtd", "rtc")]
-        build_knn(public_only, args.knn_per_class, args.knn_k, always=extra)
+        # a few standard-order references per character are enough for nearest-neighbour matching
+        build_knn(public_only, args.knn_per_class, args.knn_k, always=extra + standard[:: max(1, args.standard // 5)])
     for kind in ("cnn", "gru"):
         if args.model in ("all", kind):
             train_network(kind, train_set, val_set, args.epochs, device)

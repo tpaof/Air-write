@@ -3,3 +3,6 @@ __pycache__/
 data/external/
 *.pyc
 data/demo_log/
+.~lock.*
+checkpoints/tuned/
+checkpoints/std_open4/

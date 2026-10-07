@@ -22,30 +22,22 @@ uv pip install --python .venv/bin/python -r requirements.txt
 
 ```bash
 .venv/bin/python scripts/train.py                  # เทรนทั้ง 3 โมเดล (~5 นาทีบน GPU)
-.venv/bin/uvicorn server.app:app --port 8001       # เปิด http://127.0.0.1:8001
+.venv/bin/uvicorn server.app:app --port 8000       # เปิด http://127.0.0.1:8000
 .venv/bin/python scripts/evaluate.py --writer tpaof  # ประเมินผล -> reports/
 ```
 
-- `/` — หน้าเดโม เขียนแล้วดูผลทั้ง 3 โมเดลข้างกัน
+- `/` (หรือ `/practice`) — หน้าหลัก ฝึกเขียนสำหรับเด็ก: สุ่มตัวให้เขียน ตัวช่วยลากตาม 3 ระดับ บอกถูก/ผิด นับคะแนน และฝึกซ้ำเฉพาะตัวที่ผิด
+  มีโหมดฝึกเขียนคำศัพท์ 3–4 ตัวอักษรพร้อมภาพและคำแปลไทย เขียนทีละตัว ตัวที่ผิดต้องเขียนใหม่จนครบคำ
+  (เส้นตัวช่วยตามลำดับการลากเส้นมาตรฐาน Zaner-Bloser จาก `airwrite/stroke_order.py`: `scripts/make_guides.py` → `checkpoints/guides.json`)
+- `/demo` — เขียนอิสระ ดูผลทั้ง 3 โมเดลข้างกัน และพิมพ์เป็นข้อความทีละตัว (ความสามารถเสริม: ป้อนข้อความแบบไม่สัมผัส)
 - `/collect` — เก็บลายมือของผู้ใช้ไว้ทดสอบ/เทรนเพิ่ม (บันทึกที่ `data/collected/<writer>/`)
 - `train.py --extra tpaof` — เทรนใหม่โดยเพิ่มลายมือที่เก็บเอง
+- `train.py --standard 100` — เพิ่มตัวอย่างสังเคราะห์ตามลำดับเส้นมาตรฐาน (ให้อ่านตัวที่ลากตามเส้นตัวช่วยถูก)
+  โมเดลปัจจุบัน: `train.py --extra Teerepat --extra-test-per-class 2 --standard 100`
 
 ท่ามือ: 🤏 จีบนิ้วโป้งกับนิ้วชี้ = เขียน · ปล่อย = ยกปากกา ·
-ยกปากกาหรือค้างนิ่ง ~0.8 วินาที = ส่งทาย · 🤏 จีบบนคำที่แถบบนของภาพ = เลือกคำที่ระบบเดา ·
+ยกปากกาหรือค้างนิ่ง ~0.8 วินาที = ส่งทาย ·
 ✋ แบมือค้าง 0.7 วินาที = ยกเลิกตัวที่กำลังเขียน หรือ (ถ้ากระดานว่าง) ลบตัวอักษร (ค้างต่อ = ลบทุก 0.5 วินาที; หน้าเก็บข้อมูล = ลบตัวอย่างล่าสุด)
-
-## เดาคำที่กำลังเขียน (Bayesian + bigram language model)
-
-หลังเขียนแต่ละตัว `airwrite/lexicon.py` เดาคำที่ผู้ใช้น่าจะกำลังเขียน 3 คำ (เฉพาะคำในพจนานุกรม) แสดงเป็นปุ่มบนแถบบนของภาพ ยกมือไปจีบที่คำเพื่อเลือก:
-
-    P(คำ | ตัวที่เขียนแล้ว, คำก่อนหน้า) ∝ P(คำ | คำก่อนหน้า) · Π P(ตัวที่ i | เส้นที่ i)
-
-- P(คำ | คำก่อนหน้า) = 0.7 · bigram + 0.3 · ความถี่คำ (เช่น THANK → YOU)
-- 10% ของ prior ให้ "สตริงอะไรก็ได้" เพื่อให้รหัส/ตัวเลขที่ไม่อยู่ในพจนานุกรมยังพิมพ์ได้
-- เริ่มเดาหลังเขียนตัวแรกของคำแล้ว (คำก่อนหน้ายังช่วยจัดอันดับผ่าน bigram)
-- ช่วยแก้คู่ที่รูปร่างเหมือนกัน (O/0, I/1, S/5) จากบริบท เช่น `HELL0` → `HELLO`
-
-ไฟล์: `data/lexicon/words_en.tsv` (20,000 คำ), `bigrams_en.tsv`, `custom_words.txt` (เพิ่มคำเองได้ บรรทัดละคำ แล้วรีสตาร์ท server)
 
 ## โครงสร้าง
 
@@ -55,9 +47,9 @@ uv pip install --python .venv/bin/python -r requirements.txt
 | `airwrite/datasets.py` | โหลด RTD/RTC (pickle แบบอนุญาตเฉพาะ numpy) และข้อมูลที่เก็บเอง |
 | `airwrite/models.py` | CharCNN, CharGRU, KnnDtw (+ DTW) |
 | `airwrite/predictor.py` | โหลดโมเดลแล้วทายพร้อมกันทั้ง 3 ตัว + Ensemble |
-| `airwrite/lexicon.py` | เดาคำ (Bayesian + bigram) |
+| `airwrite/stroke_order.py` | ลำดับเส้นมาตรฐาน (Zaner-Bloser) สำหรับเส้นตัวช่วยและข้อมูลสังเคราะห์ |
 | `scripts/train.py`, `scripts/evaluate.py` | เทรน / ประเมินผล + กราฟสำหรับรายงาน |
-| `server/app.py` | FastAPI: หน้าเว็บ, `/api/predict`, `/api/suggest`, `/api/samples` |
+| `server/app.py` | FastAPI: หน้าเว็บ, `/api/predict`, `/api/guides`, `/api/samples` |
 | `web/js/airpen.js` | กล้อง + MediaPipe + ตรวจท่ามือ + One Euro filter + สร้างเส้น |
 
 ## เครดิตและแหล่งอ้างอิง
@@ -66,7 +58,7 @@ uv pip install --python .venv/bin/python -r requirements.txt
   "Trajectory-Based Air-Writing Recognition Using Deep Neural Network and Depth Sensor,"
   *Sensors*, 20(2):376, 2020. doi:10.3390/s20020376
 - **MediaPipe Hand Landmarker** (Google) — `web/vendor/` เป็นสำเนาของ `@mediapipe/tasks-vision` 1.1.0 และโมเดล `hand_landmarker.task` (Apache-2.0) เพื่อให้เดโมทำงานได้แบบออฟไลน์
-- **ความถี่คำและ bigram** — `count_1w.txt`, `count_2w.txt` จาก Peter Norvig, "Natural Language Corpus Data" (<https://norvig.com/ngrams/>) ซึ่งมาจาก Google Web Trillion Word Corpus
+- **ลำดับการลากเส้นของเส้นตัวช่วย** — Zaner-Bloser Handwriting, Manuscript Stroke Descriptions
 - **One Euro Filter** — G. Casiez, N. Roussel, D. Vogel, "1€ Filter," CHI 2012
 - แนวคิดการใช้ท่ามือ (จีบนิ้วเขียน) และการ resample ตามความยาวเส้น ได้แรงบันดาลใจจาก
   [SkyInk](https://github.com/TheekshanaChathuranga/SkyInk) (MIT) — โค้ดในโปรเจกต์นี้เขียนใหม่ทั้งหมด

@@ -1,13 +1,29 @@
+/* Bright, friendly theme for young learners: warm paper background, white cards, a few
+   clear colours (sky = action, green = right, red = wrong, orange = the letter to write now). */
 :root {
-  --bg: #0b1220;
-  --panel: #131c2e;
-  --line: #24314a;
-  --text: #e5ecf6;
-  --muted: #8a9ab5;
-  --accent: #38bdf8;
+  --bg: #fff8ec;
+  --panel: #ffffff;
+  --panel-2: #f7f3ea;
+  --line: #eadfcb;
+  --text: #2b2d42;
+  --muted: #7a7f99;
+  --accent: #2ea8f0;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3f4fd;
+  --now: #ff8a3d;
   --good: #22c55e;
+  --good-soft: #dcfce7;
+  --bad: #ef4444;
+  --bad-soft: #fee2e2;
+  --warm: #ffc83d;
+  --warm-soft: #fef3c7;
+  --shadow: 0 6px 20px rgba(120, 90, 40, 0.1);
+  --radius: 20px;
   --gutter: clamp(12px, 2.5vw, 24px);
-  --header-h: 56px;
+  --header-h: 64px;
+  /* room under the camera for the gesture hints, status line and settings */
+  --below-stage: 150px;
+  --kid: "Mali", "Sarabun", "Noto Sans Thai", system-ui, sans-serif;
   font-family: "Sarabun", "Noto Sans Thai", system-ui, sans-serif;
 }
 
@@ -15,11 +31,16 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background:
+    radial-gradient(500px 360px at 8% 12%, rgba(46, 168, 240, 0.12), transparent 70%),
+    radial-gradient(520px 380px at 95% 85%, rgba(255, 200, 61, 0.18), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   overflow-x: hidden;
 }
 
+/* ---------- header ---------- */
 header {
   display: flex;
   flex-wrap: wrap;
@@ -28,75 +49,89 @@ header {
   gap: 8px 16px;
   min-height: var(--header-h);
   padding: 8px var(--gutter);
-  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  border-bottom: 3px solid var(--warm);
 }
 
-header h1 { margin: 0; font-size: clamp(17px, 2.2vw, 20px); }
+header h1 { margin: 0; font-family: var(--kid); font-size: clamp(20px, 2.6vw, 26px); font-weight: 700; color: var(--now); }
 header h1 span { color: var(--accent); }
-header h1 small { color: var(--muted); font-weight: 400; font-size: 0.75em; margin-left: 6px; }
-header nav { display: flex; gap: 16px; }
-header nav a { color: var(--muted); text-decoration: none; }
-header nav a.active { color: var(--text); font-weight: 600; }
+header h1 small { color: var(--muted); font-family: "Sarabun", sans-serif; font-weight: 400; font-size: 0.62em; margin-left: 8px; }
+header nav { display: flex; gap: 6px; }
+header nav a {
+  padding: 7px 16px;
+  border-radius: 999px;
+  color: var(--muted);
+  text-decoration: none;
+  font-family: var(--kid);
+  font-weight: 700;
+}
+header nav a:hover { color: var(--text); background: var(--panel-2); }
+header nav a.active { color: var(--accent-ink); background: var(--accent); }
 
-/* Desktop: camera on the left, panels on the right, all inside one screen height. */
+/* ---------- layout ---------- */
 main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
   gap: var(--gutter);
   padding: var(--gutter);
   align-items: start;
 }
 
-.camera-col { min-width: 0; }
-
-.stage { position: relative; }
-.stage video { display: none; }
-.stage canvas {
-  display: block;
-  width: 100%;
-  height: auto;
-  /* keep the whole camera view on screen, leaving room for the hint and controls below */
-  max-height: calc(100dvh - var(--header-h) - 190px);
-  object-fit: contain;
-  border-radius: 12px;
-  background: #000;
+.camera-col {
+  min-width: 0;
+  --stage-w: min(100%, calc((100dvh - var(--header-h) - var(--below-stage) - 2 * var(--gutter)) * 4 / 3));
 }
 
-/* bottom-left: the top strip of the camera view holds the word chips */
+/* The stage is exactly as big as the camera picture (no black bars), as large as fits on
+   screen, and the overlays (target, badge, feedback) sit on the picture itself. */
+.stage {
+  position: relative;
+  width: var(--stage-w);
+  margin: 0 auto;
+  border: 5px solid var(--panel);
+  border-radius: 26px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: var(--shadow), 0 0 0 2px var(--line);
+}
+.stage video { display: none; }
+.stage canvas { display: block; width: 100%; height: auto; }
+
+/* bottom-left, out of the way of the guide box and the target in the top-right */
 .badge {
   position: absolute;
   bottom: 10px;
   left: 10px;
   max-width: calc(100% - 20px);
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: rgba(11, 18, 32, 0.8);
-  font-size: clamp(12px, 1.6vw, 15px);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  font-weight: 600;
+  font-size: clamp(13px, 1.5vw, 15px);
 }
 
 .target-overlay {
   position: absolute;
-  top: 8px;
-  right: 14px;
-  font-size: clamp(48px, 9vw, 96px);
+  top: 10px;
+  right: 12px;
+  padding: 2px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: clamp(48px, 8vw, 92px);
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.05;
   color: var(--accent);
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
   pointer-events: none;
 }
 
-.suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 2.2em; }
-.suggestion { font-weight: 700; letter-spacing: 0.04em; }
-.suggestion small { font-weight: 400; color: var(--muted); }
-
-.output .current { color: var(--accent); text-decoration: underline; text-underline-offset: 6px; }
-
+/* ---------- under the camera ---------- */
 .gestures {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
-  margin: 12px 0 0;
+  margin: 14px 0 0;
   padding: 0;
   list-style: none;
   font-size: 15px;
@@ -105,53 +140,195 @@ main {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  border: 1px solid var(--line);
+  padding: 7px 14px;
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--panel);
 }
 .gestures span { font-size: 20px; }
 
 .hint { color: var(--muted); font-size: 14px; margin: 10px 0; line-height: 1.6; }
-.status { color: var(--accent); }
+.camera-col > .hint { text-align: center; }
+.status { color: var(--accent); font-weight: 600; }
 .center { text-align: center; justify-content: center; }
+
+/* camera and timing settings: for the teacher, folded away from the child */
+.settings {
+  width: var(--stage-w);
+  margin: 6px auto 0;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.settings summary {
+  padding: 8px 14px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 14px;
+  list-style: none;
+}
+.settings summary::-webkit-details-marker { display: none; }
+.settings summary::after { content: " ▾"; }
+.settings[open] summary::after { content: " ▴"; }
+.settings .controls { padding: 4px 14px 12px; }
 
 .controls { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .controls label { display: flex; align-items: center; gap: 6px; }
 .controls input { width: 80px; }
 
-aside { min-width: 0; }
+aside { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 
+/* ---------- panels ---------- */
 .panel {
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
 }
 
 .panel h2 {
-  margin: 0 0 10px;
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  color: var(--muted);
+  margin: 0 0 12px;
+  font-family: var(--kid);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
 }
-.panel h2 small { font-weight: 400; margin-left: 4px; }
+.panel h2 small { font-family: "Sarabun", sans-serif; font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 4px; }
 
+.field { margin-top: 12px; }
+.field:first-of-type { margin-top: 0; }
+.field > .label { display: block; margin-bottom: 6px; font-size: 14px; color: var(--muted); }
+
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.grow { flex: 1; min-width: 140px; }
+
+button, select, input {
+  background: var(--panel);
+  color: var(--text);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 15px;
+  max-width: 100%;
+}
+button { cursor: pointer; font-family: var(--kid); font-weight: 700; transition: border-color 0.15s, background 0.15s, transform 0.1s; }
+button:hover { border-color: var(--accent); }
+button:active { transform: translateY(1px); }
+select { min-width: 0; }
+button:focus-visible, select:focus-visible, input:focus-visible, header nav a:focus-visible, .settings summary:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 3px 0 #1b86c6;
+}
+button.primary:hover { filter: brightness(1.05); }
+button.ghost { background: var(--panel-2); }
+#reps { width: 64px; }
+#round-size { width: 64px; }
+
+label { font-size: 14px; color: var(--muted); }
+
+/* a <select> shown as a row of buttons (see segmentize() in common.js);
+   3 per row, and with 5 choices the last two share the second row */
+.segmented { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.segmented button {
+  grid-column: span 2;
+  padding: 9px 8px;
+  border-radius: 999px;
+}
+.segmented button:nth-child(4):nth-last-child(2),
+.segmented button:nth-child(5):nth-last-child(1) { grid-column: span 3; }
+.segmented button.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+/* ---------- practice: the character / word to write ---------- */
+.target-card { text-align: center; border-color: #bfe5fb; background: linear-gradient(180deg, #f0f9ff 0%, var(--panel) 45%); }
+.target-card h2 { text-align: left; color: var(--accent); }
+.target {
+  font-size: clamp(72px, 10vw, 120px);
+  font-weight: 700;
+  text-align: center;
+  line-height: 1;
+  color: var(--accent);
+  margin: 4px 0 12px;
+}
+.target .picture { font-size: clamp(48px, 6vw, 64px); line-height: 1.1; }
+.target .word { font-size: clamp(52px, 7vw, 84px); letter-spacing: 0.08em; }
+.target .meaning { font-family: var(--kid); font-size: 20px; font-weight: 500; line-height: 1.7; color: var(--muted); margin-top: 14px; }
+.target .word span, .target-overlay .word span { color: #b8bccb; }
+.target .word span.done, .target-overlay .word span.done { color: var(--good); }
+.target .word span.now, .target-overlay .word span.now {
+  color: var(--now);
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.12em;
+}
+.target-overlay.word-mode { display: flex; align-items: center; gap: 8px; font-size: clamp(32px, 4.5vw, 56px); letter-spacing: 0.06em; }
+
+.score { font-size: 16px; color: var(--muted); }
+.score b { color: var(--text); font-size: 26px; font-family: var(--kid); }
+.progress { height: 14px; margin: 12px 0 6px; border-radius: 999px; background: var(--panel-2); border: 2px solid var(--line); overflow: hidden; }
+.progress span { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--warm), var(--good)); transition: width 0.4s; }
+.target-card .hint { margin: 8px 0 12px; min-height: 1.6em; }
+.target-card .row { justify-content: center; }
+
+/* ✓ ถูกต้อง / ✗ ผิด in the middle of the camera picture */
+.feedback {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 14px 34px;
+  border-radius: 24px;
+  font-family: var(--kid);
+  font-size: clamp(30px, 5vw, 56px);
+  font-weight: 700;
+  white-space: nowrap;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  animation: pop 0.25s ease-out;
+}
+.feedback.ok { color: #16a34a; border: 5px solid var(--good); }
+.feedback.bad { color: var(--bad); border: 5px solid var(--bad); }
+@keyframes pop {
+  from { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* results of the round / collection progress */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); gap: 6px; font-size: 14px; }
+.grid.words { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+.grid div { text-align: center; border-radius: 12px; padding: 6px 0; background: var(--panel-2); line-height: 1.35; font-weight: 600; }
+.grid div.done { background: var(--good-soft); color: #15803d; }
+.grid div.current { outline: 3px solid var(--accent); }
+.grid div.wrong { background: var(--bad-soft); color: #b91c1c; }
+.grid div.partial { background: var(--warm-soft); color: #92400e; }
+.grid .bad { color: var(--bad); font-weight: 700; }
+.grid:empty::before { content: "ยังไม่มีผล"; color: var(--muted); font-size: 13px; font-weight: 400; grid-column: 1 / -1; text-align: left; }
+#summary .hint { margin-bottom: 8px; }
+#summary b { color: var(--now); }
+
+/* ---------- demo page ---------- */
 .models { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 
 .model {
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
   padding: 8px 6px;
   text-align: center;
   cursor: pointer;
   min-width: 0;
+  background: var(--panel);
 }
-
 .model.ensemble { margin-bottom: 8px; }
 .model.ensemble .char { font-size: clamp(44px, 6vw, 60px); color: var(--accent); }
-.model.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.model.selected { border-color: var(--accent); background: var(--accent-soft); }
 .model .name { font-size: 12px; color: var(--muted); }
 .model .char { font-size: clamp(30px, 4vw, 40px); font-weight: 700; line-height: 1.15; }
 .model .prob { font-size: 13px; }
@@ -167,6 +344,7 @@ aside { min-width: 0; }
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
+.output .current { color: var(--accent); text-decoration: underline; text-underline-offset: 6px; }
 .output .caret {
   display: inline-block;
   width: 2px;
@@ -178,64 +356,35 @@ aside { min-width: 0; }
 }
 @keyframes blink { 50% { opacity: 0; } }
 
-.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.grow { flex: 1; min-width: 140px; }
-
-button, select, input {
-  background: #1b2740;
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font: inherit;
-  font-size: 14px;
-  max-width: 100%;
-}
-select { min-width: 0; }
-button { cursor: pointer; }
-button:hover { border-color: var(--accent); }
-#reps { width: 64px; }
-
 #cnn-view {
   width: 96px;
   height: 96px;
   image-rendering: pixelated;
-  border-radius: 6px;
+  border-radius: 10px;
   background: #000;
 }
 
-.target {
-  font-size: clamp(64px, 10vw, 110px);
-  font-weight: 700;
-  text-align: center;
-  line-height: 1;
-  color: var(--accent);
-  margin-bottom: 10px;
-}
-
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; font-size: 13px; }
-.grid div { text-align: center; border-radius: 6px; padding: 4px 0; background: #1b2740; }
-.grid div.done { background: rgba(34, 197, 94, 0.25); }
-.grid div.current { outline: 2px solid var(--accent); }
-
-label { font-size: 14px; color: var(--muted); }
-
+/* ---------- smaller screens ---------- */
 /* Tablet: stack, and lay the panels out side by side under the camera. */
 @media (max-width: 1100px) {
+  :root { --below-stage: 40dvh; }
   main { grid-template-columns: 1fr; }
-  .stage canvas { max-height: 62vh; }
-  aside { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-  aside .panel { margin-bottom: 0; }
+  aside { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 }
 
 /* Phone */
 @media (max-width: 600px) {
-  :root { --gutter: 12px; }
+  :root { --gutter: 12px; --below-stage: 45dvh; }
   header h1 small { display: none; }
-  .stage canvas { max-height: 50vh; }
+  header nav a { padding: 6px 10px; }
+  .gestures { font-size: 13px; }
   .hint { font-size: 13px; }
   .controls label { flex: 1 1 100%; justify-content: space-between; }
   .controls select { flex: 1; }
   aside { grid-template-columns: 1fr; }
   .model .others, .model .ms { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback, .progress span { animation: none; transition: none; }
 }
