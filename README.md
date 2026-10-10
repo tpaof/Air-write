@@ -4,6 +4,10 @@
 มีเส้นตัวช่วยสอนลำดับการลากเส้น และบอกถูก/ผิดทันที อ่านตัวอักษรด้วยโมเดล 3 แบบ ได้แก่ **KNN + DTW**,
 **CNN** (มองเส้นเป็นภาพ) และ **GRU** (มองเส้นเป็นลำดับเวลา) แล้วรวมผลด้วย **Ensemble**
 
+---
+
+## Architecture Overview
+
 ```mermaid
 flowchart LR
     A[Webcam / Landmark Stream] --> B[MediaPipe Hand Landmarker]
@@ -19,6 +23,8 @@ flowchart LR
     K --> L[Ensemble over 36 Classes]
     L --> M[Practice Feedback: Correct / Wrong]
 ```
+
+---
 
 ## ติดตั้ง
 
