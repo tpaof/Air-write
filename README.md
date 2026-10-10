@@ -1,11 +1,23 @@
-# AirWrite — เขียนตัวอักษรกลางอากาศด้วยนิ้ว
+# AirWrite — ฝึกเขียนตัวอักษรกลางอากาศด้วยนิ้ว
 
-เขียนตัวเลข 0–9 และตัวอักษร A–Z กลางอากาศหน้าเว็บแคม แล้วระบบแปลงเป็นข้อความ
-โดยเปรียบเทียบโมเดล 3 แบบ: **KNN + DTW**, **CNN** (มองเส้นเป็นภาพ) และ **GRU** (มองเส้นเป็นลำดับเวลา)
+ระบบฝึกเขียนสำหรับเด็ก: จีบนิ้วแล้วลากตัวเลข 0–9, ตัวอักษร A–Z หรือคำศัพท์ง่าย ๆ กลางอากาศหน้าเว็บแคม
+มีเส้นตัวช่วยสอนลำดับการลากเส้น และบอกถูก/ผิดทันที อ่านตัวอักษรด้วยโมเดล 3 แบบ ได้แก่ **KNN + DTW**,
+**CNN** (มองเส้นเป็นภาพ) และ **GRU** (มองเส้นเป็นลำดับเวลา) แล้วรวมผลด้วย **Ensemble**
 
-```
-เว็บแคม → MediaPipe Hands (เบราว์เซอร์) → เส้นทางปลายนิ้ว → POST /api/predict
-        → resample 64 จุด + normalize → KNN+DTW / CNN / GRU → ตัวอักษร
+```mermaid
+flowchart LR
+    A[Webcam / Landmark Stream] --> B[MediaPipe Hand Landmarker]
+    B --> C[One Euro Filter]
+    B --> D[Gesture State Machine]
+    D -- Pinch --> E[Pen Down: Stroke Accumulator]
+    D -- Palm Held --> F[Cancel Character]
+    D -- Pause 0.8 s --> G[Recognition Trigger]
+    E --> H[Join Strokes]
+    H --> I[Arc-Length Resampling & Smoothing]
+    I --> J[64-Point Sequence / 28x28 Image]
+    J --> K[KNN+DTW / CNN / BiGRU]
+    K --> L[Ensemble over 36 Classes]
+    L --> M[Practice Feedback: Correct / Wrong]
 ```
 
 ## ติดตั้ง
@@ -16,7 +28,7 @@ uv pip install --python .venv/bin/python -r requirements.txt
 ```
 
 ต้องมี dataset RTD และ RTC วางไว้ที่ `data/external/rtd/RTD Dataset/` และ `data/external/rtc/`
-(ดาวน์โหลดจาก <https://shahinur.com/en/rtd/> และ <https://shahinur.com/en/rtc/>)
+(ดาวน์โหลดจาก [https://shahinur.com/en/rtd/](https://shahinur.com/en/rtd/) และ [https://shahinur.com/en/rtc/](https://shahinur.com/en/rtc/))
 
 ## ใช้งาน
 
@@ -41,16 +53,16 @@ uv pip install --python .venv/bin/python -r requirements.txt
 
 ## โครงสร้าง
 
-| ไฟล์ | หน้าที่ |
-|---|---|
-| `airwrite/preprocess.py` | ต่อเส้น, resample, smooth, normalize, แปลงเป็นลำดับ/ภาพ, augmentation |
-| `airwrite/datasets.py` | โหลด RTD/RTC (pickle แบบอนุญาตเฉพาะ numpy) และข้อมูลที่เก็บเอง |
-| `airwrite/models.py` | CharCNN, CharGRU, KnnDtw (+ DTW) |
-| `airwrite/predictor.py` | โหลดโมเดลแล้วทายพร้อมกันทั้ง 3 ตัว + Ensemble |
-| `airwrite/stroke_order.py` | ลำดับเส้นมาตรฐาน (Zaner-Bloser) สำหรับเส้นตัวช่วยและข้อมูลสังเคราะห์ |
-| `scripts/train.py`, `scripts/evaluate.py` | เทรน / ประเมินผล + กราฟสำหรับรายงาน |
-| `server/app.py` | FastAPI: หน้าเว็บ, `/api/predict`, `/api/guides`, `/api/samples` |
-| `web/js/airpen.js` | กล้อง + MediaPipe + ตรวจท่ามือ + One Euro filter + สร้างเส้น |
+| ไฟล์                                      | หน้าที่                                                                                                           |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `airwrite/preprocess.py`                    | ต่อเส้น, resample, smooth, normalize, แปลงเป็นลำดับ/ภาพ, augmentation                             |
+| `airwrite/datasets.py`                      | โหลด RTD/RTC (pickle แบบอนุญาตเฉพาะ numpy) และข้อมูลที่เก็บเอง                      |
+| `airwrite/models.py`                        | CharCNN, CharGRU, KnnDtw (+ DTW)                                                                                         |
+| `airwrite/predictor.py`                     | โหลดโมเดลแล้วทายพร้อมกันทั้ง 3 ตัว + Ensemble                                             |
+| `airwrite/stroke_order.py`                  | ลำดับเส้นมาตรฐาน (Zaner-Bloser) สำหรับเส้นตัวช่วยและข้อมูลสังเคราะห์ |
+| `scripts/train.py`, `scripts/evaluate.py` | เทรน / ประเมินผล + กราฟสำหรับรายงาน                                                         |
+| `server/app.py`                             | FastAPI: หน้าเว็บ,`/api/predict`, `/api/guides`, `/api/samples`                                            |
+| `web/js/airpen.js`                          | กล้อง + MediaPipe + ตรวจท่ามือ + One Euro filter + สร้างเส้น                                     |
 
 ## เครดิตและแหล่งอ้างอิง
 
